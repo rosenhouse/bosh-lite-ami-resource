@@ -25,8 +25,8 @@ func main() {
 		log.Fatalf("%s", err)
 	}
 
-	resource := lib.NewResource()
-	versions, err := resource.Check(inData.Source, inData.Version)
+	resource := lib.NewResource(inData.Source)
+	versions, err := resource.Check(inData.Version)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}

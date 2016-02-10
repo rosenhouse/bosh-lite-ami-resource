@@ -16,13 +16,14 @@ var _ = Describe("Resource", func() {
 
 		var resource *lib.Resource
 		var atlasClient *mocks.AtlasClient
-		var source lib.Source
 
 		BeforeEach(func() {
 			atlasClient = &mocks.AtlasClient{}
 			resource = &lib.Resource{
 				AtlasClient: atlasClient,
-				BoxName:     "some-box-name",
+				SourceConfig: lib.Source{
+					BoxName: "some-box-name",
+				},
 			}
 			atlasClient.GetLatestVersionCall.Returns.Version = "1.2.3"
 		})
@@ -30,7 +31,7 @@ var _ = Describe("Resource", func() {
 		DescribeTable("version comparison",
 			func(oldVersion, currentVersion lib.Version, expectedResult []lib.Version) {
 				atlasClient.GetLatestVersionCall.Returns.Version = currentVersion.BoxVersion
-				versionList, err := resource.Check(source, oldVersion)
+				versionList, err := resource.Check(oldVersion)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(versionList).To(Equal(expectedResult))
@@ -46,7 +47,7 @@ var _ = Describe("Resource", func() {
 		)
 
 		It("should check for the latest version", func() {
-			_, err := resource.Check(source, lib.Version{})
+			_, err := resource.Check(lib.Version{})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(atlasClient.GetLatestVersionCall.Receives.BoxName).To(Equal("some-box-name"))
@@ -56,7 +57,7 @@ var _ = Describe("Resource", func() {
 			It("should wrap and return the error", func() {
 				atlasClient.GetLatestVersionCall.Returns.Error = errors.New("some error")
 
-				_, err := resource.Check(source, lib.Version{})
+				_, err := resource.Check(lib.Version{})
 				Expect(err).To(MatchError("atlas client: some error"))
 			})
 		})
