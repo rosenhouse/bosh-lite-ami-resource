@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -10,9 +8,9 @@ import (
 )
 
 func main() {
-	stdinBytes, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		log.Fatalf("%s", err)
+	jsonIO := lib.JsonIO{
+		InStream:  os.Stdin,
+		OutStream: os.Stdout,
 	}
 
 	var inData struct {
@@ -20,8 +18,7 @@ func main() {
 		Version lib.Version
 	}
 
-	err = json.Unmarshal(stdinBytes, &inData)
-	if err != nil {
+	if err := jsonIO.ReadJSON(&inData); err != nil {
 		log.Fatalf("%s", err)
 	}
 
@@ -31,13 +28,7 @@ func main() {
 		log.Fatalf("%s", err)
 	}
 
-	stdoutBytes, err := json.Marshal(versions)
-	if err != nil {
-		log.Fatalf("%s", err)
-	}
-
-	_, err = os.Stdout.Write(stdoutBytes)
-	if err != nil {
+	if err := jsonIO.WriteJSON(versions); err != nil {
 		log.Fatalf("%s", err)
 	}
 }
