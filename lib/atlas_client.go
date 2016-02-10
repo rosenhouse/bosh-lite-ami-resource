@@ -38,9 +38,10 @@ func (c *AtlasClient) GetLatestVersion(boxName string) (string, error) {
 	return ver, nil
 }
 
-func (c *AtlasClient) GetLatestAMIs(boxName string) (map[string]string, error) {
+func (c *AtlasClient) GetAMIs(boxName, version string) (map[string]string, error) {
 	var metadata struct {
 		Versions []struct {
+			Version   string
 			Providers []struct {
 				Name        string
 				DownloadURL string `json:"download_url"`
@@ -54,35 +55,40 @@ func (c *AtlasClient) GetLatestAMIs(boxName string) (map[string]string, error) {
 	}
 
 	var downloadURL = ""
-	for _, provider := range metadata.Versions[0].Providers {
-		if provider.Name == "aws" {
-			downloadURL = provider.DownloadURL
+	for _, v := range metadata.Versions {
+		if v.Version != version {
+			continue
+		}
+		for _, provider := range v.Providers {
+			if provider.Name == "aws" {
+				downloadURL = provider.DownloadURL
+			}
 		}
 	}
 
 	if downloadURL == "" {
-		return nil, err
+		panic("unable to locate desired version")
 	}
 
 	gzippedBoxResp, err := http.Get(downloadURL)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	tarReader, err := gzip.NewReader(gzippedBoxResp.Body)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	tarBytes, err := ioutil.ReadAll(tarReader)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	// aws.region_config "eu-west-1", ami: "ami-4d8eac3a"
 	amiLineParts := regexp.MustCompile(`\"([a-z,0-9,\-]*)\", ami: \"(ami-[a-z,0-9]*)\"`).FindAllSubmatch(tarBytes, -1)
 	if amiLineParts == nil {
-		return nil, fmt.Errorf("no AMIs id found within box name")
+		panic(fmt.Errorf("no AMIs id found within box name"))
 	}
 
 	amiMap := map[string]string{}

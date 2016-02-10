@@ -1,9 +1,10 @@
 package mocks
 
 type AtlasClient struct {
-	GetLatestAMIsCall struct {
+	GetAMIsCall struct {
 		Receives struct {
 			BoxName string
+			Version string
 		}
 		Returns struct {
 			AMIMap map[string]string
@@ -22,9 +23,10 @@ type AtlasClient struct {
 	}
 }
 
-func (c *AtlasClient) GetLatestAMIs(boxName string) (map[string]string, error) {
-	c.GetLatestAMIsCall.Receives.BoxName = boxName
-	return c.GetLatestAMIsCall.Returns.AMIMap, c.GetLatestAMIsCall.Returns.Error
+func (c *AtlasClient) GetAMIs(boxName, version string) (map[string]string, error) {
+	c.GetAMIsCall.Receives.BoxName = boxName
+	c.GetAMIsCall.Receives.Version = version
+	return c.GetAMIsCall.Returns.AMIMap, c.GetAMIsCall.Returns.Error
 }
 
 func (c *AtlasClient) GetLatestVersion(boxName string) (string, error) {

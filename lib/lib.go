@@ -19,6 +19,7 @@ type Metadata struct {
 
 type atlasClient interface {
 	GetLatestVersion(boxName string) (string, error)
+	GetAMIs(boxName, version string) (map[string]string, error)
 }
 
 type Resource struct {

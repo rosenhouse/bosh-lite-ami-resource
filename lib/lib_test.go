@@ -12,22 +12,33 @@ import (
 )
 
 var _ = Describe("Resource", func() {
-	Describe("Check", func() {
+	var resource *lib.Resource
+	var atlasClient *mocks.AtlasClient
 
-		var resource *lib.Resource
-		var atlasClient *mocks.AtlasClient
+	BeforeEach(func() {
+		atlasClient = &mocks.AtlasClient{}
+		resource = &lib.Resource{
+			AtlasClient: atlasClient,
+			SourceConfig: lib.Source{
+				BoxName: "some-box-name",
+				Region:  "some-region",
+			},
+		}
+		atlasClient.GetLatestVersionCall.Returns.Version = "1.2.3"
+	})
 
-		BeforeEach(func() {
-			atlasClient = &mocks.AtlasClient{}
-			resource = &lib.Resource{
-				AtlasClient: atlasClient,
-				SourceConfig: lib.Source{
-					BoxName: "some-box-name",
-				},
-			}
-			atlasClient.GetLatestVersionCall.Returns.Version = "1.2.3"
+	Describe("In", func() {
+		XIt("should return the AMI for the given version and region", func() {
+			// ami, err := resource.In(lib.Version{"3.4.5"})
+			// Expect(err).NotTo(HaveOccurred())
+
+			// Expect(atlasClient.GetAMICall.Receives.BoxName).To(Equal("some-box-name"))
+			// Expect(atlasClient.GetAMICall.Receives.Version).To(Equal("3.4.5"))
+			// Expect(atlasClient.GetAMICall.Receives.Region).To(Equal("some-region"))
 		})
+	})
 
+	Describe("Check", func() {
 		DescribeTable("version comparison",
 			func(oldVersion, currentVersion lib.Version, expectedResult []lib.Version) {
 				atlasClient.GetLatestVersionCall.Returns.Version = currentVersion.BoxVersion
