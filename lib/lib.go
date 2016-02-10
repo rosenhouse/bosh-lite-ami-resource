@@ -9,7 +9,12 @@ type Source struct {
 }
 
 type Version struct {
-	BoxVersion string `json:"boxversion"`
+	BoxVersion string `json:"box_version"`
+}
+
+type Metadata struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type atlasClient interface {
@@ -60,4 +65,8 @@ func (r *Resource) Check(old Version) ([]Version, error) {
 		return []Version{}, nil
 	}
 	return []Version{Version{BoxVersion: latest}}, nil
+}
+
+func (r *Resource) In(ver Version) (string, error) {
+	return "", nil
 }
