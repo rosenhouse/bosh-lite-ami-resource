@@ -67,28 +67,29 @@ func (c *AtlasClient) GetAMIs(boxName, version string) (map[string]string, error
 	}
 
 	if downloadURL == "" {
-		panic("unable to locate desired version")
+		return nil, fmt.Errorf("unable to find box %q version %q", boxName, version)
 	}
 
 	gzippedBoxResp, err := http.Get(downloadURL)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("error downloading box: %s", err)
 	}
+	defer gzippedBoxResp.Body.Close()
 
 	tarReader, err := gzip.NewReader(gzippedBoxResp.Body)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("error gunzipping box: %s", err)
 	}
 
 	tarBytes, err := ioutil.ReadAll(tarReader)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("error reading box bytes: %s", err) // not tested
 	}
 
 	// aws.region_config "eu-west-1", ami: "ami-4d8eac3a"
 	amiLineParts := regexp.MustCompile(`\"([a-z,0-9,\-]*)\", ami: \"(ami-[a-z,0-9]*)\"`).FindAllSubmatch(tarBytes, -1)
 	if amiLineParts == nil {
-		panic(fmt.Errorf("no AMIs id found within box name"))
+		return nil, fmt.Errorf("no AMIs found within box")
 	}
 
 	amiMap := map[string]string{}

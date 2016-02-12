@@ -1,6 +1,7 @@
 package lib_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -14,11 +15,16 @@ import (
 )
 
 var _ = Describe("AtlasClient", func() {
+
+	var fakeDownloadServer *ghttp.Server
+	var jsonClient *mocks.JSONClient
+	var atlasClient lib.AtlasClient
+
 	Describe("#GetAMIs", func() {
-		It("should return the AMI used by the box in the specified region", func() {
+		BeforeEach(func() {
 			gzippedBoxData, err := ioutil.ReadFile("fixtures/test-box.gz")
 			Expect(err).NotTo(HaveOccurred())
-			fakeDownloadServer := ghttp.NewServer()
+			fakeDownloadServer = ghttp.NewServer()
 			fakeDownloadRoute := "/some/download/url"
 			fakeDownloadServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -28,7 +34,7 @@ var _ = Describe("AtlasClient", func() {
 			)
 			fakeDownloadURL := fakeDownloadServer.URL() + fakeDownloadRoute
 
-			jsonClient := &mocks.JSONClient{}
+			jsonClient = &mocks.JSONClient{}
 			jsonClient.GetCall.ResponseJSON = fmt.Sprintf(`{
 				"versions" : [
 					{
@@ -72,9 +78,14 @@ var _ = Describe("AtlasClient", func() {
 					}
 				]
 			}`, fakeDownloadURL)
-			c := lib.AtlasClient{jsonClient}
+			atlasClient = lib.AtlasClient{jsonClient}
+		})
+		AfterEach(func() {
+			fakeDownloadServer.Close()
+		})
 
-			amiMap, err := c.GetAMIs("someuser/somebox", "some-special-version")
+		It("should return the AMI used by the box in the specified region", func() {
+			amiMap, err := atlasClient.GetAMIs("someuser/somebox", "some-special-version")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(amiMap).To(Equal(map[string]string{
 				"ap-northeast-1": "ami-58d24558",
@@ -89,11 +100,50 @@ var _ = Describe("AtlasClient", func() {
 
 			Expect(jsonClient.GetCall.Args.Route).To(Equal("/api/v1/box/someuser/somebox"))
 		})
+
+		Context("when the desired version isn't available", func() {
+			It("should return a useful error message", func() {
+				_, err := atlasClient.GetAMIs("someuser/somebox", "non-existent-version")
+				Expect(err).To(MatchError(`unable to find box "someuser/somebox" version "non-existent-version"`))
+			})
+		})
+
+		Context("when downloading the gzipped box fails", func() {
+			It("should return a useful error", func() {
+				fakeDownloadServer.HTTPTestServer.Close()
+				_, err := atlasClient.GetAMIs("someuser/somebox", "some-special-version")
+				Expect(err).To(MatchError(HavePrefix("error downloading box: Get")))
+			})
+		})
+
+		Context("when unzipping the box fails", func() {
+			It("should return a useful error", func() {
+				fakeDownloadServer.SetHandler(0,
+					ghttp.CombineHandlers(
+						ghttp.RespondWith(http.StatusOK, []byte("not gzipped")),
+					),
+				)
+				_, err := atlasClient.GetAMIs("someuser/somebox", "some-special-version")
+				Expect(err).To(MatchError("error gunzipping box: gzip: invalid header"))
+			})
+		})
+
+		Context("when the box doesn't include AMI definitions", func() {
+			It("should return a useful error", func() {
+				gzippedMsg, _ := base64.StdEncoding.DecodeString("H4sIADxwvVYAA8vI5AIAenpv7QMAAAA=")
+				fakeDownloadServer.SetHandler(0,
+					ghttp.CombineHandlers(
+						ghttp.RespondWith(http.StatusOK, gzippedMsg),
+					),
+				)
+				_, err := atlasClient.GetAMIs("someuser/somebox", "some-special-version")
+				Expect(err).To(MatchError("no AMIs found within box"))
+			})
+		})
 	})
 
 	Describe("#GetLatestVersion", func() {
 		It("should return the most recent box version", func() {
-			jsonClient := &mocks.JSONClient{}
 			jsonClient.GetCall.ResponseJSON = `
 {
   "current_version" : {
@@ -106,9 +156,7 @@ var _ = Describe("AtlasClient", func() {
     "revoke_url": "https://atlas.hashicorp.com/api/v1/box/cloudfoundry/bosh-lite/version/9000.92.0/revoke"
   }
 }`
-			c := lib.AtlasClient{jsonClient}
-
-			version, err := c.GetLatestVersion("someuser/somebox")
+			version, err := atlasClient.GetLatestVersion("someuser/somebox")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(version).To(Equal("9000.92.0"))
 
