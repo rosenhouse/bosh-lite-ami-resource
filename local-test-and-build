@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e -x -u
+
+reporoot=$(cd $(dirname $0) && pwd)
+cd $reporoot
+
+docker run --rm \
+  -v $PWD:/go/src/github.com/rosenhouse/bosh-lite-ami-resource \
+  -w / \
+  golang \
+  /go/src/github.com/rosenhouse/bosh-lite-ami-resource/ci/test-and-build.sh
