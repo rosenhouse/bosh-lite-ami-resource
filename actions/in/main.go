@@ -22,7 +22,7 @@ func checkDirExists(path string) error {
 }
 
 func main() {
-	if len(os.Args) != 1 {
+	if len(os.Args) != 2 {
 		log.Fatalf("expected exactly 1 arg")
 	}
 
