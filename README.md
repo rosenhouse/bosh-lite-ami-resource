@@ -1,6 +1,6 @@
 # bosh-lite-ami-resource
 
-A Concourse resource for discovering the AMI for the cloudfoundry/bosh-lite Vagrant box
+A Concourse resource for discovering the Amazon Machine Image (AMI) for the cloudfoundry/bosh-lite Vagrant box
 
 ## Source config
 ```
@@ -18,3 +18,6 @@ resources:
 ### check
 Returns the version of the latest box
 
+### in
+Determines the AMI id of the desired box version for the configured region.
+Writes a file `ami` containing the AMI id.
