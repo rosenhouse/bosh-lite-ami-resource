@@ -69,5 +69,13 @@ func (r *Resource) Check(old Version) ([]Version, error) {
 }
 
 func (r *Resource) In(ver Version) (string, error) {
-	return "", nil
+	allRegions, err := r.AtlasClient.GetAMIs(r.SourceConfig.BoxName, ver.BoxVersion)
+	if err != nil {
+		return "", fmt.Errorf("atlas client: %s", err)
+	}
+	ami, ok := allRegions[r.SourceConfig.Region]
+	if !ok {
+		return "", fmt.Errorf("no ami found for region %q", r.SourceConfig.Region)
+	}
+	return ami, nil
 }

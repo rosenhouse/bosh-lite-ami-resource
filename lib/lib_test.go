@@ -25,16 +25,38 @@ var _ = Describe("Resource", func() {
 			},
 		}
 		atlasClient.GetLatestVersionCall.Returns.Version = "1.2.3"
+		atlasClient.GetAMIsCall.Returns.AMIMap = map[string]string{
+			"some-region":    "ami-something",
+			"region-2":       "ami-somethingelse",
+			"another-region": "another-ami",
+		}
 	})
 
 	Describe("In", func() {
-		XIt("should return the AMI for the given version and region", func() {
-			// ami, err := resource.In(lib.Version{"3.4.5"})
-			// Expect(err).NotTo(HaveOccurred())
+		It("should return the AMI for the given version and region", func() {
+			ami, err := resource.In(lib.Version{"3.4.5"})
+			Expect(err).NotTo(HaveOccurred())
 
-			// Expect(atlasClient.GetAMICall.Receives.BoxName).To(Equal("some-box-name"))
-			// Expect(atlasClient.GetAMICall.Receives.Version).To(Equal("3.4.5"))
-			// Expect(atlasClient.GetAMICall.Receives.Region).To(Equal("some-region"))
+			Expect(atlasClient.GetAMIsCall.Receives.BoxName).To(Equal("some-box-name"))
+			Expect(atlasClient.GetAMIsCall.Receives.Version).To(Equal("3.4.5"))
+			Expect(ami).To(Equal("ami-something"))
+		})
+
+		Context("when the atlas client GetAMIs fails", func() {
+			It("should wrap and return the error", func() {
+				atlasClient.GetAMIsCall.Returns.Error = errors.New("boom")
+				_, err := resource.In(lib.Version{"3.4.5"})
+				Expect(err).To(MatchError("atlas client: boom"))
+			})
+		})
+
+		Context("when there is no AMI available for the configured region", func() {
+			It("should return a useful error", func() {
+				resource.SourceConfig.Region = "unsupported-region"
+
+				_, err := resource.In(lib.Version{"3.4.5"})
+				Expect(err).To(MatchError(`no ami found for region "unsupported-region"`))
+			})
 		})
 	})
 
