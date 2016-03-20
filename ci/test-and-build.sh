@@ -2,7 +2,6 @@
 
 set -e -x -u
 
-export GO15VENDOREXPERIMENT=1
 pwd
 ls
 export GOPATH=$PWD/go
