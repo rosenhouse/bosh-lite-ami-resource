@@ -2,6 +2,10 @@
 
 set -e -x -u
 
+export CGO_ENABLED=0
+go version
+go env
+
 export GOPATH=/go
 OUT=$PWD/image-materials
 
